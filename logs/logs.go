@@ -3,10 +3,13 @@ package logs
 // 日志接口
 import (
 	"bytes"
+	"log"
+	"math/rand"
 	"net/http"
 	"server/mydb"
 	"server/util"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,15 +32,22 @@ func AllLogs(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 400, "msg": "参数不正确"})
 		return
 	}
-	gap := int64(24 * 3600 * 1000)
-	startTime := json.End_time - 7*24*3600*1000
-	err := getStat(json.Web_id, 0, startTime, json.End_time, gap)
-	per := getStat(json.Web_id, 1, startTime, json.End_time, gap)
-	user1 := getStat(json.Web_id, 2, startTime, json.End_time, gap)
-	user2 := getStat(json.Web_id, 3, startTime, json.End_time, gap)
-	http1 := getStat(json.Web_id, 4, startTime, json.End_time, gap)
-	http2 := getStat(json.Web_id, 5, startTime, json.End_time, gap)
-	browser, area := getBrowserAndArea(json.Web_id)
+	// gap := int64(24 * 3600 * 1000)
+	// startTime := json.End_time - 7*24*3600*1000
+	// err := getStat(json.Web_id, 0, startTime, json.End_time, gap)
+	// per := getStat(json.Web_id, 1, startTime, json.End_time, gap)
+	// user1 := getStat(json.Web_id, 2, startTime, json.End_time, gap)
+	// user2 := getStat(json.Web_id, 3, startTime, json.End_time, gap)
+	// http1 := getStat(json.Web_id, 4, startTime, json.End_time, gap)
+	// http2 := getStat(json.Web_id, 5, startTime, json.End_time, gap)
+	err := getStat2(0, 2)
+	per := getStat2(1, 2)
+	user1 := getStat2(2, 2)
+	user2 := getStat2(3, 2)
+	http1 := getStat2(4, 2)
+	http2 := getStat2(5, 2)
+	// browser, area := getBrowserAndArea(json.Web_id)
+	browser, area := getBrowserAndArea2()
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "获取图表信息成功", "data": gin.H{
 		"err": err, "per": per, "user1": user1, "user2": user2,
 		"http1": http1, "http2": http2, "browser": browser, "area": area}})
@@ -105,9 +115,12 @@ func StatLogs(c *gin.Context) {
 	case 4:
 		gap = 2 * 24 * 3600 * 1000
 		startTime -= 30 * 24 * 3600 * 1000
+	case 5:
+		log.Println(gap)
 	}
 
-	res := getStat(json.Web_id, index, startTime, json.End_time, gap)
+	// res := getStat(json.Web_id, index, startTime, json.End_time, gap)
+	res := getStat2(index, json.Time)
 
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "获取统计信息成功", "data": res})
 }
@@ -592,6 +605,105 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 	return res
 }
 
+// 获取统计信息函数，假数据
+func getStat2(index, timeIndex int) [][]int {
+	res := [][]int{}
+	base := 16
+	len := 7
+	// 根据事件索引返回特定长度的切片
+	switch timeIndex {
+	case 0: // 4h 15min 16
+		{
+			len = 16
+			base = 1
+		}
+	case 1: // 1d 2h 12
+		{
+			len = 12
+			base = 8
+		}
+	case 2: // 7d 1d 7
+		{
+			len = 7
+			base = 96
+		}
+	case 3: // 14d 1d 14
+		{
+			len = 14
+			base = 96
+		}
+	case 4: // 30d 2d 15
+		{
+			len = 15
+			base = 192
+		}
+	}
+
+	rand.Seed(time.Now().UnixNano())
+
+	switch index {
+	case 0: // 异常
+		{
+			for i := 0; i < len; i++ {
+				item := []int{0, 0, 0, 0}
+				item[0] = rand.Intn(200*base) + base*2
+				item[1] = rand.Intn(300*base) + base*3
+				item[2] = rand.Intn(100*base) + 10
+				item[3] = rand.Intn(5 * base)
+				res = append(res, item)
+			}
+		}
+	case 1: // 性能
+		{
+			for i := 0; i < len; i++ {
+				item := []int{0, 0, 0, 0, 0, 0}
+				item[0] = rand.Intn(3)                  // dns
+				item[1] = rand.Intn(260) + item[0] + 40 // fp
+				item[2] = rand.Intn(10) + item[1]       // fcp
+				item[3] = rand.Intn(30) + item[2]       // lcp
+				item[4] = rand.Intn(100) + item[3] + 20 // dcl
+				item[5] = rand.Intn(5) + item[4]        // l
+				res = append(res, item)
+			}
+		}
+	case 2: //行为 pv/uv
+		{
+			for i := 0; i < len; i++ {
+				item := []int{0, 0}
+				item[1] = rand.Intn(2000*base) + 100     // pu
+				item[0] = rand.Intn(8000*base) + item[1] // pv
+				res = append(res, item)
+			}
+		}
+	case 3: //行为 dration
+		{
+			for i := 0; i < len; i++ {
+				item := []int{0}
+				item[0] = rand.Intn(100000) + 123 // dration
+				res = append(res, item)
+			}
+		}
+	case 4: //网络 成功失败数
+		{
+			for i := 0; i < len; i++ {
+				item := []int{0, 0}
+				item[0] = rand.Intn(9900)*base + 50 //  成功
+				item[1] = rand.Intn(100)*base + 10  // 失败
+				res = append(res, item)
+			}
+		}
+	case 5: //网络 响应时间
+		{
+			for i := 0; i < len; i++ {
+				item := []int{0}
+				item[0] = rand.Intn(100) + 30 // res_time
+				res = append(res, item)
+			}
+		}
+	}
+	return res
+}
+
 type Web struct {
 	Web_id                                                                                 int
 	Browser0, Browser1, Browser2, Browser3, Browser4, Browser5, Browser6, Area0, Area1     int
@@ -621,6 +733,27 @@ func getBrowserAndArea(id int) ([7]int, [35]int) {
 		web.Area9, web.Area10, web.Area11, web.Area12, web.Area13, web.Area14, web.Area15, web.Area16, web.Area17,
 		web.Area18, web.Area19, web.Area20, web.Area21, web.Area22, web.Area23, web.Area24, web.Area25, web.Area26,
 		web.Area27, web.Area28, web.Area29, web.Area30, web.Area31, web.Area32, web.Area33, web.Area34}
+
+	return browser, area
+}
+
+// 请求浏览器和地区信息 假数据
+func getBrowserAndArea2() ([7]int, [35]int) {
+	browser := [7]int{}
+	area := [35]int{}
+
+	rand.Seed(time.Now().UnixNano())
+
+	browser[0] = rand.Intn(500 * 10000)
+	browser[1] = rand.Intn(2000 * 10000)
+	browser[2] = rand.Intn(800 * 10000)
+	browser[3] = rand.Intn(800 * 10000)
+	browser[4] = rand.Intn(1 * 10000)
+	browser[5] = rand.Intn(100 * 10000)
+	browser[6] = rand.Intn(100 * 10000)
+	for i := 0; i < 35; i++ {
+		area[i] = rand.Intn(100)
+	}
 
 	return browser, area
 }

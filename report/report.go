@@ -82,7 +82,7 @@ type Beh struct {
 	Duration int
 	Ip       string
 	Area     int
-	Brower   int
+	Browser  int
 	User     int
 }
 
@@ -104,9 +104,9 @@ func ReportBeh(c *gin.Context) {
 		"insert into `beh_cache_logs` "+
 			"(web_id, url, time, duration, ip, area, browser, user) "+
 			"values(?,?,?,?,?,?,?,?)",
-		json.Web_id, json.Url, json.Time, json.Duration, json.Ip, json.Area, json.Brower, json.User)
+		json.Web_id, json.Url, json.Time, json.Duration, json.Ip, json.Area, json.Browser, json.User)
 
-	str1, str2 := "browser"+strconv.Itoa(json.Brower), "area"+strconv.Itoa(json.Area)
+	str1, str2 := "browser"+strconv.Itoa(json.Browser), "area"+strconv.Itoa(json.Area)
 	// log.Println(str1, str2)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 500, "msg": "数据库故障"})
