@@ -660,9 +660,9 @@ func getStat2(index, timeIndex int) [][]int {
 				item[0] = rand.Intn(3)                  // dns
 				item[1] = rand.Intn(260) + item[0] + 40 // fp
 				item[2] = rand.Intn(10) + item[1]       // fcp
-				item[3] = rand.Intn(30) + item[2]       // lcp
-				item[4] = rand.Intn(100) + item[3] + 20 // dcl
-				item[5] = rand.Intn(5) + item[4]        // l
+				item[3] = rand.Intn(300) + item[2]      // lcp
+				item[4] = rand.Intn(50) + item[2]       // dcl
+				item[5] = rand.Intn(200) + item[3]      // l
 				res = append(res, item)
 			}
 		}

@@ -107,12 +107,32 @@ func DeleteWeb(c *gin.Context) {
 		return
 	}
 
-	_, err := mydb.DB.Exec("delete from webs where user_id=? and web_id=?",
-		user_id, json.Web_id)
-	if err == nil {
-		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "删除成功"})
+	// 要同时删除多个表 开启事务
+	tx, err := mydb.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"code": 500, "msg": "删除失败"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"code": 400, "msg": "删除失败"})
+	_, err = tx.Exec("delete from webs where user_id=? and web_id=?",
+		user_id, json.Web_id)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusOK, gin.H{"code": 500, "msg": "删除失败"})
+		return
+	}
+
+	tableNameList := [4]string{"err_cache_logs", "per_cache_logs", "beh_cache_logs", "http_cache_logs"}
+	for i := 0; i < 4; i++ {
+		tableName := tableNameList[i]
+		_, err = tx.Exec("delete from "+tableName+" where Web_id=?",
+			json.Web_id)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusOK, gin.H{"code": 500, "msg": "删除失败"})
+			return
+		}
+	}
+	tx.Commit()
+	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "删除成功"})
 }
