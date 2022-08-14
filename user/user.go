@@ -64,7 +64,6 @@ func Register(c *gin.Context) {
 	for rows.Next() {
 		c.JSON(http.StatusOK, gin.H{"code": 400, "msg": "邮箱已注册"})
 		return
-
 	}
 
 	ret, err := mydb.DB.Exec(
@@ -73,8 +72,7 @@ func Register(c *gin.Context) {
 			"values(?,?,?) limit 1",
 		json.Password, json.Email, json.Name)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"code": 500, "msg": "数据库故障"})
-		log.Println("插入用户数据失败")
+		c.JSON(http.StatusOK, gin.H{"code": 500, "msg": "插入用户数据失败"})
 		return
 	}
 	id, _ := ret.LastInsertId()

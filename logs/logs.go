@@ -32,20 +32,20 @@ func AllLogs(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 400, "msg": "参数不正确"})
 		return
 	}
-	// gap := int64(24 * 3600 * 1000)
-	// startTime := json.End_time - 7*24*3600*1000
-	// err := getStat(json.Web_id, 0, startTime, json.End_time, gap)
-	// per := getStat(json.Web_id, 1, startTime, json.End_time, gap)
-	// user1 := getStat(json.Web_id, 2, startTime, json.End_time, gap)
-	// user2 := getStat(json.Web_id, 3, startTime, json.End_time, gap)
-	// http1 := getStat(json.Web_id, 4, startTime, json.End_time, gap)
-	// http2 := getStat(json.Web_id, 5, startTime, json.End_time, gap)
-	err := getStat2(0, 2)
-	per := getStat2(1, 2)
-	user1 := getStat2(2, 2)
-	user2 := getStat2(3, 2)
-	http1 := getStat2(4, 2)
-	http2 := getStat2(5, 2)
+	gap := int64(24 * 3600 * 1000)
+	startTime := json.End_time - 7*24*3600*1000
+	err := getStat(json.Web_id, 0, startTime, json.End_time, gap)
+	per := getStat(json.Web_id, 1, startTime, json.End_time, gap)
+	user1 := getStat(json.Web_id, 2, startTime, json.End_time, gap)
+	user2 := getStat(json.Web_id, 3, startTime, json.End_time, gap)
+	http1 := getStat(json.Web_id, 4, startTime, json.End_time, gap)
+	http2 := getStat(json.Web_id, 5, startTime, json.End_time, gap)
+	// err := getStat2(0, 2)
+	// per := getStat2(1, 2)
+	// user1 := getStat2(2, 2)
+	// user2 := getStat2(3, 2)
+	// http1 := getStat2(4, 2)
+	// http2 := getStat2(5, 2)
 	// browser, area := getBrowserAndArea(json.Web_id)
 	browser, area := getBrowserAndArea2()
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "获取图表信息成功", "data": gin.H{
@@ -119,8 +119,8 @@ func StatLogs(c *gin.Context) {
 		log.Println(gap)
 	}
 
-	// res := getStat(json.Web_id, index, startTime, json.End_time, gap)
-	res := getStat2(index, json.Time)
+	// res = getStat2(index, json.Time)
+	res := getStat(json.Web_id, index, startTime, json.End_time, gap)
 
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "获取统计信息成功", "data": res})
 }
@@ -431,9 +431,9 @@ func screenCondition(str, key string) string {
 }
 
 // 获取统计信息函数，供接口调用
-func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
+func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 	res := [][]int{}
-	len := int((endTime - statrTime) / gap)
+	len := int((endTime - startTime) / gap)
 	for i := 0; i < len; i++ {
 		res = append(res, []int{})
 	}
@@ -448,14 +448,14 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 				"select time, type from err_cache_logs "+
 					"where web_id=?"+
 					" and time>=? and time<?",
-				id, statrTime, endTime)
+				id, startTime, endTime)
 			i := 0
 			for rows.Next() {
 				var item ErrLog
 				rows.Scan(&item.Time, &item.Type)
-				for !(item.Time >= statrTime && item.Time < statrTime+gap) {
+				for !(item.Time >= startTime && item.Time < startTime+gap) {
 					i++
-					statrTime += gap
+					startTime += gap
 				}
 				res[i][item.Type]++
 			}
@@ -469,19 +469,19 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 				"select time, dns, fp, fcp, lcp, dcl, l from per_cache_logs "+
 					"where web_id=?"+
 					" and time>=? and time<?",
-				id, statrTime, endTime)
+				id, startTime, endTime)
 
 			i, count := 0, 0
 			for rows.Next() {
 				var item PerLog
 				rows.Scan(&item.Time, &item.Dns, &item.Fp, &item.Fcp, &item.Lcp, &item.Dcl, &item.L)
-				for !(item.Time >= statrTime && item.Time < statrTime+gap) {
+				for !(item.Time >= startTime && item.Time < startTime+gap) {
 					if count != 0 {
 						util.ExceptAll(res[i], count)
 					}
 					i++
 					count = 0
-					statrTime += gap
+					startTime += gap
 				}
 				res[i][0] += item.Dns
 				res[i][1] += item.Fp
@@ -504,15 +504,15 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 				"select time, user from beh_cache_logs "+
 					"where web_id=?"+
 					" and time>=? and time<?",
-				id, statrTime, endTime)
+				id, startTime, endTime)
 
 			i := 0
 			for rows.Next() {
 				var item BehLog
 				rows.Scan(&item.Time, &item.User)
-				for !(item.Time >= statrTime && item.Time < statrTime+gap) {
+				for !(item.Time >= startTime && item.Time < startTime+gap) {
 					i++
-					statrTime += gap
+					startTime += gap
 				}
 				if item.User != 2 {
 					res[i][1]++
@@ -529,18 +529,18 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 				"select time, duration from beh_cache_logs "+
 					"where web_id=?"+
 					" and time>=? and time<?",
-				id, statrTime, endTime)
+				id, startTime, endTime)
 			i, count := 0, 0
 			for rows.Next() {
 				var item BehLog
 				rows.Scan(&item.Time, &item.Duration)
-				for !(item.Time >= statrTime && item.Time < statrTime+gap) {
+				for !(item.Time >= startTime && item.Time < startTime+gap) {
 					if count != 0 {
 						util.ExceptAll(res[i], count)
 					}
 					i++
 					count = 0
-					statrTime += gap
+					startTime += gap
 				}
 				res[i][0] += item.Duration
 				count++
@@ -558,15 +558,15 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 				"select time, success from http_cache_logs "+
 					"where web_id=?"+
 					" and time>=? and time<?",
-				id, statrTime, endTime)
+				id, startTime, endTime)
 
 			i := 0
 			for rows.Next() {
 				var item HttpLog
 				rows.Scan(&item.Time, &item.Success)
-				for !(item.Time >= statrTime && item.Time < statrTime+gap) {
+				for !(item.Time >= startTime && item.Time < startTime+gap) {
 					i++
-					statrTime += gap
+					startTime += gap
 				}
 				res[i][item.Success]++
 			}
@@ -580,18 +580,18 @@ func getStat(id, index int, statrTime, endTime, gap int64) [][]int {
 				"select time, res_time from http_cache_logs "+
 					"where web_id=?"+
 					" and time>=? and time<?",
-				id, statrTime, endTime)
+				id, startTime, endTime)
 			i, count := 0, 0
 			for rows.Next() {
 				var item HttpLog
 				rows.Scan(&item.Time, &item.Res_time)
-				for !(item.Time >= statrTime && item.Time < statrTime+gap) {
+				for !(item.Time >= startTime && item.Time < startTime+gap) {
 					if count != 0 {
 						util.ExceptAll(res[i], count)
 					}
 					i++
 					count = 0
-					statrTime += gap
+					startTime += gap
 				}
 				res[i][0] += item.Res_time
 				count++
@@ -646,10 +646,10 @@ func getStat2(index, timeIndex int) [][]int {
 		{
 			for i := 0; i < len; i++ {
 				item := []int{0, 0, 0, 0}
-				item[0] = rand.Intn(200*base) + base*2
-				item[1] = rand.Intn(300*base) + base*3
-				item[2] = rand.Intn(100*base) + 10
-				item[3] = rand.Intn(5 * base)
+				item[0] = rand.Intn(10*base) + base*40
+				item[1] = rand.Intn(50*base) + base*50
+				item[2] = rand.Intn(20*base) + base*100
+				item[3] = rand.Intn(5*base) + base
 				res = append(res, item)
 			}
 		}
@@ -657,12 +657,12 @@ func getStat2(index, timeIndex int) [][]int {
 		{
 			for i := 0; i < len; i++ {
 				item := []int{0, 0, 0, 0, 0, 0}
-				item[0] = rand.Intn(3)                  // dns
-				item[1] = rand.Intn(260) + item[0] + 40 // fp
-				item[2] = rand.Intn(10) + item[1]       // fcp
-				item[3] = rand.Intn(300) + item[2]      // lcp
-				item[4] = rand.Intn(50) + item[2]       // dcl
-				item[5] = rand.Intn(200) + item[3]      // l
+				item[0] = rand.Intn(5)             // dns
+				item[1] = rand.Intn(260) + 40      // fp
+				item[2] = rand.Intn(40) + item[1]  // fcp
+				item[3] = rand.Intn(200) + item[2] // lcp
+				item[4] = rand.Intn(50) + item[3]  // dcl
+				item[5] = rand.Intn(300) + item[3] // l
 				res = append(res, item)
 			}
 		}
@@ -670,8 +670,8 @@ func getStat2(index, timeIndex int) [][]int {
 		{
 			for i := 0; i < len; i++ {
 				item := []int{0, 0}
-				item[1] = rand.Intn(2000*base) + 100     // pu
-				item[0] = rand.Intn(8000*base) + item[1] // pv
+				item[0] = rand.Intn(400*base) + base*400   // pv
+				item[1] = item[0]/(5+rand.Intn(10)) + base // pu
 				res = append(res, item)
 			}
 		}
@@ -679,7 +679,7 @@ func getStat2(index, timeIndex int) [][]int {
 		{
 			for i := 0; i < len; i++ {
 				item := []int{0}
-				item[0] = rand.Intn(100000) + 123 // dration
+				item[0] = rand.Intn(40000) + 40000 // dration
 				res = append(res, item)
 			}
 		}
@@ -687,8 +687,8 @@ func getStat2(index, timeIndex int) [][]int {
 		{
 			for i := 0; i < len; i++ {
 				item := []int{0, 0}
-				item[0] = rand.Intn(9900)*base + 50 //  成功
-				item[1] = rand.Intn(100)*base + 10  // 失败
+				item[0] = rand.Intn(400*base) + 600*base      //  成功
+				item[1] = item[0]/(2+rand.Intn(20)) + 10*base // 失败
 				res = append(res, item)
 			}
 		}
@@ -696,7 +696,7 @@ func getStat2(index, timeIndex int) [][]int {
 		{
 			for i := 0; i < len; i++ {
 				item := []int{0}
-				item[0] = rand.Intn(100) + 30 // res_time
+				item[0] = rand.Intn(80) + 80 // res_time
 				res = append(res, item)
 			}
 		}
@@ -744,13 +744,13 @@ func getBrowserAndArea2() ([7]int, [35]int) {
 
 	rand.Seed(time.Now().UnixNano())
 
-	browser[0] = rand.Intn(500 * 10000)
-	browser[1] = rand.Intn(2000 * 10000)
-	browser[2] = rand.Intn(800 * 10000)
-	browser[3] = rand.Intn(800 * 10000)
-	browser[4] = rand.Intn(1 * 10000)
-	browser[5] = rand.Intn(100 * 10000)
-	browser[6] = rand.Intn(100 * 10000)
+	browser[0] = rand.Intn(2000) + 2000
+	browser[1] = rand.Intn(6000) + 8000
+	browser[2] = rand.Intn(4000) + 3000
+	browser[3] = rand.Intn(4000) + 3000
+	browser[4] = rand.Intn(100)
+	browser[5] = rand.Intn(500) + 500
+	browser[6] = rand.Intn(500) + 500
 	for i := 0; i < 35; i++ {
 		area[i] = rand.Intn(100)
 	}
