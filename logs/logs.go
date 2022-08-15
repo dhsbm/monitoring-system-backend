@@ -46,8 +46,8 @@ func AllLogs(c *gin.Context) {
 	// user2 := getStat2(3, 2)
 	// http1 := getStat2(4, 2)
 	// http2 := getStat2(5, 2)
-	// browser, area := getBrowserAndArea(json.Web_id)
-	browser, area := getBrowserAndArea2()
+	browser, area := getBrowserAndArea(json.Web_id)
+	// browser, area := getBrowserAndArea2()
 	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "获取图表信息成功", "data": gin.H{
 		"err": err, "per": per, "user1": user1, "user2": user2,
 		"http1": http1, "http2": http2, "browser": browser, "area": area}})
@@ -445,9 +445,10 @@ func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 				res[i] = []int{0, 0, 0, 0}
 			}
 			rows, _ := mydb.DB.Query(
-				"select time, type from err_cache_logs "+
-					"where web_id=?"+
-					" and time>=? and time<?",
+				"select time, type from err_cache_logs"+
+					" where web_id=?"+
+					" and time>=? and time<?"+
+					" order by time",
 				id, startTime, endTime)
 			i := 0
 			for rows.Next() {
@@ -466,9 +467,10 @@ func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 				res[i] = []int{0, 0, 0, 0, 0, 0}
 			}
 			rows, _ := mydb.DB.Query(
-				"select time, dns, fp, fcp, lcp, dcl, l from per_cache_logs "+
-					"where web_id=?"+
-					" and time>=? and time<?",
+				"select time, dns, fp, fcp, lcp, dcl, l from per_cache_logs"+
+					" where web_id=?"+
+					" and time>=? and time<?"+
+					" order by time",
 				id, startTime, endTime)
 
 			i, count := 0, 0
@@ -501,9 +503,10 @@ func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 				res[i] = []int{0, 0}
 			}
 			rows, _ := mydb.DB.Query(
-				"select time, user from beh_cache_logs "+
-					"where web_id=?"+
-					" and time>=? and time<?",
+				"select time, user from beh_cache_logs"+
+					" where web_id=?"+
+					" and time>=? and time<?"+
+					" order by time",
 				id, startTime, endTime)
 
 			i := 0
@@ -520,15 +523,16 @@ func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 				res[i][0]++
 			}
 		}
-	case 3: //行为 dration
+	case 3: //行为 duration
 		{
 			for i := 0; i < len; i++ {
 				res[i] = []int{0}
 			}
 			rows, _ := mydb.DB.Query(
-				"select time, duration from beh_cache_logs "+
-					"where web_id=?"+
-					" and time>=? and time<?",
+				"select time, duration from beh_cache_logs"+
+					" where web_id=?"+
+					" and time>=? and time<?"+
+					" order by time",
 				id, startTime, endTime)
 			i, count := 0, 0
 			for rows.Next() {
@@ -555,9 +559,10 @@ func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 				res[i] = []int{0, 0}
 			}
 			rows, _ := mydb.DB.Query(
-				"select time, success from http_cache_logs "+
-					"where web_id=?"+
-					" and time>=? and time<?",
+				"select time, success from http_cache_logs"+
+					" where web_id=?"+
+					" and time>=? and time<?"+
+					" order by time",
 				id, startTime, endTime)
 
 			i := 0
@@ -577,9 +582,10 @@ func getStat(id, index int, startTime, endTime, gap int64) [][]int {
 				res[i] = []int{0}
 			}
 			rows, _ := mydb.DB.Query(
-				"select time, res_time from http_cache_logs "+
-					"where web_id=?"+
-					" and time>=? and time<?",
+				"select time, res_time from http_cache_logs"+
+					" where web_id=?"+
+					" and time>=? and time<?"+
+					" order by time",
 				id, startTime, endTime)
 			i, count := 0, 0
 			for rows.Next() {
