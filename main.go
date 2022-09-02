@@ -6,6 +6,8 @@ import (
 	"server/logs"
 	"server/report"
 	"server/web"
+	"strconv"
+	"time"
 
 	"net/http"
 	"server/mydb"
@@ -46,8 +48,41 @@ func main() {
 	r.POST("/report/beh", report.ReportBeh) // 应该为beh
 	r.POST("/report/http", report.ReportHttp)
 
+	go maintainDatabase()
 	// go stat()
 	r.Run(":3333")
+}
+
+var monthMs int64 = 30 * 24 * 60 * 60 * 1000
+
+// 维护数据库数据，每天执行一次，将30天前的数据后移30天
+func maintainDatabase() {
+	now := time.Now().Unix()
+	gap := 24 * 60 * 60 // 一天的秒数
+	rest := int(now % int64(gap))
+	time.Sleep(time.Second * time.Duration(gap-rest))
+
+	for {
+		log.Println("数据库开始更新")
+		pre := time.Now().Unix()*1000 - monthMs
+		update("beh_cache_logs", pre)
+		update("per_cache_logs", pre)
+		update("err_cache_logs", pre)
+		update("http_cache_logs", pre)
+		time.Sleep(time.Second * time.Duration(gap))
+	}
+}
+
+func update(table string, time int64) {
+	str := "UPDATE " + table +
+		" SET time=time+" + strconv.FormatInt(monthMs, 10) +
+		" where time < " + strconv.FormatInt(time, 10)
+
+	_, err := mydb.DB.Exec(str)
+
+	if err != nil {
+		log.Printf(table + "更新出错")
+	}
 }
 
 // 每15分钟统计一次
